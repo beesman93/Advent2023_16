@@ -53,22 +53,15 @@ void part2()
 
 int solvefor(Point coord, Point velocity)
 {
-    bool[][] energized = new bool[map.Count][];
-    for (int i = 0; i < map.Count; i++)
-        energized[i]= new bool[map[i].Count];
+    HashSet<Point> energized = new();
     move(coord, velocity, map, ref energized,new());
-    int cnt = 0;
-    foreach (var l in energized)
-        foreach (var b in l)
-            if (b)
-                cnt++;
-    return cnt;
+    return energized.Count;
 }
 void move(
     Point coord,
     in Point velocity,
     in List<List<char>> map,
-    ref bool[][] ene,
+    ref HashSet<Point> ene,
     Dictionary<Point,List<Point>> visited)
 {
     if (!visited.ContainsKey(coord))
@@ -83,7 +76,7 @@ void move(
     if (outOfBounds(map, coord))
         return; // ray went out of grid
 
-    ene[coord.X][coord.Y] = true;
+    ene.Add(coord);
 
     switch (map[coord.X][coord.Y])
     {
