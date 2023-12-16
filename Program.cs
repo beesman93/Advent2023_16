@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Drawing;
+using System.Linq;
 
 List<string> lines = new();
 using (StreamReader reader = new(args[0]))
@@ -6,6 +7,11 @@ using (StreamReader reader = new(args[0]))
     while(!reader.EndOfStream)
         lines.Add(reader.ReadLine());
 }
+
+Point UP = new(-1, 0);
+Point DOWN = new(1, 0);
+Point LEFT = new(0, -1);
+Point RIGHT = new(0, 1);
 
 List<List<char>> map = new List<List<char>>();
 foreach (string line in lines)
@@ -17,11 +23,12 @@ foreach (string line in lines)
     }
 
 }
+
 part1();
 part2();
 void part1()
 {
-    Console.WriteLine($"part1: {solvefor(0,-1,0,1)}");
+    Console.WriteLine($"part1: {solvefor(new(0,-1),new(0,1))}");
 }
 void part2()
 {
@@ -29,31 +36,27 @@ void part2()
     int curr = 0;
     for (int x = 0; x < map.Count; x++)
     {
-        curr = solvefor(x, -1, 0, 1);
+        curr = solvefor(new(x, -1), new(0, 1));
         if(curr>max)max = curr;
-        curr = solvefor(x, map[x].Count, 0, -1);
+        curr = solvefor(new(x, map[x].Count), new(0, -1));
         if (curr > max) max = curr;
     }
     for (int y = 0; y < map[0].Count; y++)
     {
-        curr = solvefor(-1, y, 1, 0);
+        curr = solvefor(new(-1, y), new(1, 0));
         if (curr > max) max = curr;
-        curr = solvefor(map.Count, y, -1, 0);
+        curr = solvefor(new(map.Count, y), new(-1, 0));
         if (curr > max) max = curr;
     }
     Console.WriteLine($"part2: {max}");
 }
 
-int solvefor(int x, int y,int velX, int velY)
+int solvefor(Point coord, Point velocity)
 {
-    string header = lines[0];
-
     bool[][] energized = new bool[map.Count][];
     for (int i = 0; i < map.Count; i++)
         energized[i]= new bool[map[i].Count];
-
-    move(x, y, velX, velY, map, ref energized,new());
-
+    move(coord, velocity, map, ref energized,new());
     int cnt = 0;
     foreach (var l in energized)
         foreach (var b in l)
@@ -61,68 +64,76 @@ int solvefor(int x, int y,int velX, int velY)
                 cnt++;
     return cnt;
 }
-void move(int x, int y, int velX, int velY,List<List<char>> map, ref bool[][] ene, List<int> d)
+void move(
+    Point coord,
+    in Point velocity,
+    in List<List<char>> map,
+    ref bool[][] ene,
+    Dictionary<Point,List<Point>> visited)
 {
-    int key = x + 1_000 * y + 1_000_000 * velX + 2_000_000 * velY;
-    if (d.Contains(key))
-        return;
-    d.Add(key);
-    x = x + velX;
-    y = y + velY;
-    //Console.WriteLine($"{x},{y}");
-    if (x < 0 || x >= map.Count || y < 0 || y >= map[0].Count)
-        return;
+    if (!visited.ContainsKey(coord))
+        visited.Add(coord, new());
+    if (visited[coord].Contains(velocity))
+        return; //already bounced here before
+    else
+        visited[coord].Add(velocity);
 
-    char c = map[x][y];
-    ene[x][y] = true;
+    coord.Offset(velocity);
 
-    switch (c)
+    if (outOfBounds(map, coord))
+        return; // ray went out of grid
+
+    ene[coord.X][coord.Y] = true;
+
+    switch (map[coord.X][coord.Y])
     {
-        case '-':
-            if (velY == 0)
-            {
-                move(x, y, 0, 1, map, ref ene,d);
-                move(x, y, 0, -1, map, ref ene, d);
-                break;
-            }
-            else
-                move(x, y, velX, velY, map, ref ene, d);
-            break;
-        case '|':
-            if (velX == 0)
-            {
-                move(x, y, 1, 0, map, ref ene, d);
-                move(x, y, -1, 0, map, ref ene, d);
-                break;
-            }
-            else
-                move(x, y, velX, velY, map, ref ene, d);
-            break;
         case '/':
-            if(velY==1)
-                move(x, y, -1, 0, map, ref ene, d);
-            if(velY==-1)
-                move(x, y, 1, 0, map, ref ene, d);
-            if (velX == 1)
-                move(x, y, 0, -1, map, ref ene, d);
-            if (velX == -1)
-                move(x, y, 0, 1, map, ref ene, d);
+            if     (velocity == RIGHT)  move(coord, UP,     map, ref ene, visited);
+            else if(velocity == LEFT)   move(coord, DOWN,   map, ref ene, visited);
+            else if(velocity == DOWN)   move(coord, LEFT,   map, ref ene, visited);
+            else if(velocity == UP)     move(coord, RIGHT,  map, ref ene, visited);
             break;
         case '\\':
-            if (velY == 1)
-                move(x, y, 1, 0, map, ref ene,d);
-            if (velY == -1)
-                move(x, y, -1, 0, map, ref ene,d);
-            if (velX == 1)
-                move(x, y, 0, 1, map, ref ene, d);
-            if (velX == -1)
-                move(x, y, 0, -1, map, ref ene, d);
+            if     (velocity == RIGHT)  move(coord, DOWN,   map, ref ene, visited);
+            else if(velocity == LEFT)   move(coord, UP,     map, ref ene, visited);
+            else if(velocity == DOWN)   move(coord, RIGHT,  map, ref ene, visited);
+            else if(velocity == UP)     move(coord, LEFT,   map, ref ene, visited);
             break;
-        case '.':
-            move(x, y, velX, velY, map, ref ene, d);
+        case '-':
+            if (velocity.Y == 0)
+            {
+                move(coord, LEFT, map, ref ene, visited);
+                move(coord, RIGHT, map, ref ene, visited);
+                break;
+            }
+            else
+            {
+                move(coord, velocity, map, ref ene, visited);
+            }
+            break;
+        case '|':
+            if (velocity.X == 0)
+            {
+                move(coord, UP, map, ref ene, visited);
+                move(coord, DOWN, map, ref ene, visited);
+                break;
+            }
+            else
+            {
+                move(coord, velocity, map, ref ene, visited);
+            }
             break;
         default:
-            throw new Exception("nope");
+            move(coord, velocity, map, ref ene, visited);
+            break;
     }
-    return;
+}
+
+bool outOfBounds(in List<List<char>> map,in Point coord)
+{
+    if (coord.X < 0) return true;
+    if (coord.Y < 0) return true;
+    if(coord.X>=map.Count) return true;
+    if (coord.Y >= map[coord.X].Count) return true;
+    return false;
 }
