@@ -1,28 +1,17 @@
 ﻿using System.Drawing;
 using System.Linq;
 
-List<string> lines = new();
+List<string> map = new();
 using (StreamReader reader = new(args[0]))
 {
     while(!reader.EndOfStream)
-        lines.Add(reader.ReadLine());
+        map.Add(reader.ReadLine());
 }
 
 Point UP = new(-1, 0);
 Point DOWN = new(1, 0);
 Point LEFT = new(0, -1);
 Point RIGHT = new(0, 1);
-
-List<List<char>> map = new List<List<char>>();
-foreach (string line in lines)
-{
-    map.Add(new());
-    foreach (char c in line)
-    {
-        map.Last().Add(c);
-    }
-
-}
 
 part1();
 part2();
@@ -38,10 +27,10 @@ void part2()
     {
         curr = solvefor(new(x, -1), new(0, 1));
         if(curr>max)max = curr;
-        curr = solvefor(new(x, map[x].Count), new(0, -1));
+        curr = solvefor(new(x, map[x].Length), new(0, -1));
         if (curr > max) max = curr;
     }
-    for (int y = 0; y < map[0].Count; y++)
+    for (int y = 0; y < map[0].Length; y++)
     {
         curr = solvefor(new(-1, y), new(1, 0));
         if (curr > max) max = curr;
@@ -60,7 +49,7 @@ int solvefor(Point coord, Point velocity)
 void move(
     Point coord,
     in Point velocity,
-    in List<List<char>> map,
+    in List<string> map,
     ref HashSet<Point> ene,
     Dictionary<Point,List<Point>> visited)
 {
@@ -122,11 +111,11 @@ void move(
     }
 }
 
-bool outOfBounds(in List<List<char>> map,in Point coord)
+bool outOfBounds(in List<string> map,in Point coord)
 {
     if (coord.X < 0) return true;
     if (coord.Y < 0) return true;
     if(coord.X>=map.Count) return true;
-    if (coord.Y >= map[coord.X].Count) return true;
+    if (coord.Y >= map[coord.X].Length) return true;
     return false;
 }
